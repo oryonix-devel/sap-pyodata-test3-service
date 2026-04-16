@@ -188,7 +188,7 @@ def list_s4hana_api_rows(
         service_url=service_url,
         top=top,
         use_mock=use_mock,
-    )
+    ).result()
 
 
 @onix.flow
@@ -207,7 +207,7 @@ def list_s4hana_api_rows_safe(
             service_url=service_url,
             top=top,
             use_mock=use_mock,
-        )
+        ).result()
         return {
             "ok": True,
             "source": result.get("source", "unknown"),
