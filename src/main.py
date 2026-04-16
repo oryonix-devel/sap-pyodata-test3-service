@@ -18,6 +18,7 @@ DEFAULT_API_REGISTRY: dict[str, dict[str, Any]] = {
         "entity_set": "A_BusinessPartner",
         "service_url": "https://sandbox.api.sap.com/s4hanacloud/sap/opu/odata/sap/API_BUSINESS_PARTNER",
         "default_top": 5,
+        "description": "Access Business Partner master data from SAP S/4HANA Cloud.",
         "columns": [
             {"key": "BusinessPartner", "label": "Business Partner"},
             {"key": "BusinessPartnerFullName", "label": "Full Name"},
@@ -34,6 +35,7 @@ DEFAULT_API_REGISTRY: dict[str, dict[str, Any]] = {
         "entity_set": "A_SalesOrder",
         "service_url": "https://sandbox.api.sap.com/s4hanacloud/sap/opu/odata/sap/API_SALES_ORDER_SRV",
         "default_top": 5,
+        "description": "Access Sales Order data from SAP S/4HANA Cloud.",
         "columns": [
             {"key": "SalesOrder", "label": "Sales Order"},
             {"key": "SalesOrderType", "label": "Type"},
@@ -89,6 +91,10 @@ def fetch_s4hana_api_rows(
         rows = descriptor["mock_rows"][:top]
         return {
             "api_name": api_name,
+            "label": descriptor["label"],
+            "technical_name": descriptor["technical_name"],
+            "entity_set": descriptor["entity_set"],
+            "service_url": service,
             "rows": rows,
             "columns": descriptor["columns"],
             "count": len(rows),
@@ -101,7 +107,11 @@ def fetch_s4hana_api_rows(
 
     # 🔥 Important: warm-up metadata call (SAP quirk)
     try:
-        requests.get(f"{service}/$metadata", headers={"APIKey": api_key}, timeout=10)
+        requests.get(
+            f"{service}/$metadata",
+            headers={"APIKey": api_key, "Accept": "application/xml"},
+            timeout=10,
+        )
     except Exception:
         pass  # not fatal
 
@@ -112,14 +122,23 @@ def fetch_s4hana_api_rows(
         params={
             "$top": top,
             "$select": ",".join(c["key"] for c in descriptor["columns"]),
+            "$format": "json",
         },
         headers={
-            "APIKey": api_key
+            "APIKey": api_key,
+            "Accept": "application/json",
         },
         timeout=30,
     )
 
-    res.raise_for_status()
+    if not res.ok:
+        try:
+            error_data = res.json()
+            message = error_data.get("error", {}).get("message", {}).get("value", res.text)
+        except Exception:
+            message = res.text
+        raise RuntimeError(f"SAP API Error ({res.status_code}): {message}")
+
     data = res.json()
 
     entries = _extract_entries(payload=data)
@@ -131,6 +150,10 @@ def fetch_s4hana_api_rows(
 
     return {
         "api_name": api_name,
+        "label": descriptor["label"],
+        "technical_name": descriptor["technical_name"],
+        "entity_set": descriptor["entity_set"],
+        "service_url": service,
         "rows": rows,
         "columns": descriptor["columns"],
         "count": len(rows),
@@ -207,6 +230,7 @@ def list_s4hana_api_rows_safe(
             "error": {
                 "type": type(e).__name__,
                 "message": str(e),
+                "details": getattr(e, "message", None) if isinstance(e, RuntimeError) else None,
             },
         }
 
