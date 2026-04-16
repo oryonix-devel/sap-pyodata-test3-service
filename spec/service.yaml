@@ -1,101 +1,214 @@
 openapi: 3.0.0
 info:
-  title: SAP Business Partner (pyodata) API
-  description: >
-    OData access to SAP S/4HANA Cloud Public Edition API_BUSINESS_PARTNER (A2X)
-    via pyodata, using the SAP API Business Hub sandbox host by default.
+  title: SAP S/4HANA API Explorer
   version: 1.0.0
+  description: Oryonix-compatible SAP S/4HANA Cloud API explorer with mock-mode UI support.
 
 paths:
-  /business-partners/list:
+  /s4hana/apis:
     post:
-      summary: List Business Partners (strict — errors fail the flow)
-      operationId: list_business_partners
+      summary: List available SAP APIs
+      operationId: list_s4hana_apis
       requestBody:
-        required: true
+        required: false
         content:
           application/json:
             schema:
               type: object
-              required:
-                - api_key
-              properties:
-                api_key:
-                  type: string
-                  description: SAP API Business Hub API key (APIKey header)
-                service_url:
-                  type: string
-                  description: >
-                    Base OData service URL (default — SAP sandbox
-                    API_BUSINESS_PARTNER)
-                top:
-                  type: integer
-                  default: 5
-                  minimum: 1
-                  maximum: 100
+              additionalProperties: false
       responses:
         "200":
-          description: Business Partner rows
+          description: Available APIs and metadata
           content:
             application/json:
               schema:
                 type: object
+                required:
+                  - available_apis
+                  - default_api_name
                 properties:
-                  service_url:
+                  default_api_name:
                     type: string
-                  count:
-                    type: integer
-                  business_partners:
+                  available_apis:
                     type: array
                     items:
-                      type: object
-                      properties:
-                        BusinessPartner:
-                          type: string
-                        BusinessPartnerFullName:
-                          type: string
-                          nullable: true
+                      $ref: "#/components/schemas/ApiDescriptor"
 
-  /business-partners/list-safe:
+  /s4hana/apis/{api_name}/rows:
     post:
-      summary: List Business Partners (errors returned in JSON)
-      operationId: list_business_partners_safe
+      summary: Fetch rows for a selected SAP API
+      operationId: list_s4hana_api_rows
+      parameters:
+        - name: api_name
+          in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - api_key
-              properties:
-                api_key:
-                  type: string
-                service_url:
-                  type: string
-                top:
-                  type: integer
-                  default: 5
-                  minimum: 1
-                  maximum: 100
+              $ref: "#/components/schemas/ApiRowsRequest"
+      responses:
+        "200":
+          description: Rows for the selected API
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiRowsResponse"
+
+  /s4hana/apis/{api_name}/rows-safe:
+    post:
+      summary: Fetch rows for a selected SAP API with structured errors
+      operationId: list_s4hana_api_rows_safe
+      parameters:
+        - name: api_name
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApiRowsRequest"
       responses:
         "200":
           description: Result or structured error
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  ok:
-                    type: boolean
-                  service_url:
-                    type: string
-                  count:
-                    type: integer
-                  business_partners:
-                    type: array
-                    items:
-                      type: object
-                  error:
-                    nullable: true
-                    type: object
+                $ref: "#/components/schemas/ApiRowsSafeResponse"
+
+components:
+  schemas:
+    ApiDescriptor:
+      type: object
+      required:
+        - api_name
+        - label
+        - technical_name
+        - entity_set
+        - service_url
+        - default_top
+        - columns
+        - description
+      properties:
+        api_name:
+          type: string
+        label:
+          type: string
+        technical_name:
+          type: string
+        entity_set:
+          type: string
+        service_url:
+          type: string
+        default_top:
+          type: integer
+        description:
+          type: string
+        columns:
+          type: array
+          items:
+            type: object
+            required:
+              - key
+              - label
+            properties:
+              key:
+                type: string
+              label:
+                type: string
+
+    ApiRowsRequest:
+      type: object
+      required:
+        - api_key
+      properties:
+        api_key:
+          type: string
+          description: SAP API key used for the sandbox APIKey header
+        service_url:
+          type: string
+          description: Optional override for the SAP OData service root URL
+        top:
+          type: integer
+          default: 5
+          minimum: 1
+          maximum: 100
+        use_mock:
+          type: boolean
+          default: true
+
+    ApiRowsResponse:
+      type: object
+      required:
+        - api_name
+        - label
+        - technical_name
+        - entity_set
+        - service_url
+        - source
+        - count
+        - columns
+        - rows
+      properties:
+        api_name:
+          type: string
+        label:
+          type: string
+        technical_name:
+          type: string
+        entity_set:
+          type: string
+        service_url:
+          type: string
+        source:
+          type: string
+          enum: [mock, sap]
+        count:
+          type: integer
+        columns:
+          type: array
+          items:
+            type: object
+            required:
+              - key
+              - label
+            properties:
+              key:
+                type: string
+              label:
+                type: string
+        rows:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+
+    ApiRowsSafeResponse:
+      allOf:
+        - $ref: "#/components/schemas/ApiRowsResponse"
+        - type: object
+          required:
+            - ok
+            - error
+          properties:
+            ok:
+              type: boolean
+            error:
+              nullable: true
+              anyOf:
+                - type: object
+                  required:
+                    - type
+                    - message
+                  properties:
+                    type:
+                      type: string
+                    message:
+                      type: string
+                - type: "null"
