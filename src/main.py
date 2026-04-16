@@ -46,11 +46,29 @@ DEFAULT_API_REGISTRY: dict[str, dict[str, Any]] = {
 }
 
 
+# -------------------------
+# Helpers
+# -------------------------
+
 def _find_api_descriptor(*, api_name: str) -> dict[str, Any]:
     if api_name not in DEFAULT_API_REGISTRY:
         raise ValueError(f"Unknown API: {api_name}")
     return DEFAULT_API_REGISTRY[api_name]
 
+
+def _extract_entries(*, payload: dict[str, Any]) -> list[dict[str, Any]]:
+    # Handles SAP OData V2 + V4
+    if "d" in payload:
+        d = payload["d"]
+        if isinstance(d, dict) and "results" in d:
+            return d["results"]
+        return [d]
+    return payload.get("value", [])
+
+
+# -------------------------
+# Compute
+# -------------------------
 
 @onix.action
 def fetch_s4hana_api_rows(
@@ -63,8 +81,10 @@ def fetch_s4hana_api_rows(
 ) -> dict[str, Any]:
 
     descriptor = _find_api_descriptor(api_name=api_name)
-    service = service_url or descriptor["service_url"]
+    service = (service_url or descriptor["service_url"]).rstrip("/")
+    top = max(1, min(int(top), 100))
 
+    # ✅ MOCK MODE
     if use_mock:
         rows = descriptor["mock_rows"][:top]
         return {
@@ -75,8 +95,15 @@ def fetch_s4hana_api_rows(
             "source": "mock",
         }
 
+    # ✅ REAL SAP CALL
     if not api_key:
-        raise ValueError("api_key required")
+        raise ValueError("api_key required when use_mock=false")
+
+    # 🔥 Important: warm-up metadata call (SAP quirk)
+    try:
+        requests.get(f"{service}/$metadata", headers={"APIKey": api_key}, timeout=10)
+    except Exception:
+        pass  # not fatal
 
     url = f"{service}/{descriptor['entity_set']}"
 
@@ -84,20 +111,22 @@ def fetch_s4hana_api_rows(
         url,
         params={
             "$top": top,
-            "$format": "json",
             "$select": ",".join(c["key"] for c in descriptor["columns"]),
         },
-        headers={"APIKey": api_key},
+        headers={
+            "APIKey": api_key
+        },
+        timeout=30,
     )
 
     res.raise_for_status()
     data = res.json()
 
-    entries = data.get("d", {}).get("results", [])
+    entries = _extract_entries(payload=data)
 
     rows = [
-        {col["key"]: e.get(col["key"]) for col in descriptor["columns"]}
-        for e in entries
+        {col["key"]: entry.get(col["key"]) for col in descriptor["columns"]}
+        for entry in entries
     ]
 
     return {
@@ -109,9 +138,9 @@ def fetch_s4hana_api_rows(
     }
 
 
-# ======================
-# FLOWS (your requirement)
-# ======================
+# -------------------------
+# FLOWS
+# -------------------------
 
 @onix.flow
 def list_s4hana_apis(*, api_key: str | None = None):
@@ -156,14 +185,35 @@ def list_s4hana_api_rows_safe(
             top=top,
             use_mock=use_mock,
         )
-        return {"ok": True, **result, "error": None}
+        return {
+            "ok": True,
+            "source": result.get("source", "unknown"),
+            "columns": result.get("columns", []),
+            "rows": result.get("rows", []),
+            "count": result.get("count", 0),
+            **result,
+            "error": None,
+        }
     except Exception as e:
-        return {"ok": False, "rows": [], "count": 0, "error": str(e)}
+        descriptor = DEFAULT_API_REGISTRY.get(api_name)
+
+        return {
+            "ok": False,
+            "api_name": api_name,
+            "source": "error",
+            "columns": descriptor["columns"] if descriptor else [],
+            "rows": [],
+            "count": 0,
+            "error": {
+                "type": type(e).__name__,
+                "message": str(e),
+            },
+        }
 
 
-# ======================
-# 🔥 CRITICAL EXPORT FIX
-# ======================
+# -------------------------
+# EXPORTS
+# -------------------------
 
 __all__ = [
     "list_s4hana_apis",
