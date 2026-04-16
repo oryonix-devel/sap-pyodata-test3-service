@@ -168,7 +168,7 @@ components:
           type: string
         source:
           type: string
-          enum: [mock, sap]
+          enum: [mock, sap, error]
         count:
           type: integer
         columns:

@@ -62,6 +62,25 @@ DEFAULT_API_REGISTRY: dict[str, dict[str, Any]] = {
             {"Product": "Z-200", "ProductType": "HAWA"},
         ],
     },
+    "purchase_orders": {
+        "api_name": "purchase_orders",
+        "label": "Purchase Orders",
+        "technical_name": "API_PURCHASEORDER_PROCESS_SRV",
+        "entity_set": "A_PurchaseOrder",
+        "service_url": "https://sandbox.api.sap.com/s4hanacloud/sap/opu/odata/sap/API_PURCHASEORDER_PROCESS_SRV",
+        "default_top": 5,
+        "description": "Access Purchase Order headers from SAP S/4HANA Cloud.",
+        "columns": [
+            {"key": "PurchaseOrder", "label": "Purchase Order"},
+            {"key": "CompanyCode", "label": "Company Code"},
+            {"key": "PurchasingOrganization", "label": "Purchasing Org"},
+            {"key": "Supplier", "label": "Supplier"},
+        ],
+        "mock_rows": [
+            {"PurchaseOrder": "4500001", "CompanyCode": "1010", "PurchasingOrganization": "1010", "Supplier": "1000001"},
+            {"PurchaseOrder": "4500002", "CompanyCode": "1010", "PurchasingOrganization": "1010", "Supplier": "1000002"},
+        ],
+    },
 }
 
 
@@ -234,7 +253,7 @@ def list_s4hana_api_rows_safe(
         # Build response explicitly to avoid future-proxy issues
         return {
             "ok": True,
-            "api_name": action_result.get("api_name"),
+            "api_name": action_result.get("api_name", api_name),
             "label": action_result.get("label"),
             "technical_name": action_result.get("technical_name"),
             "entity_set": action_result.get("entity_set"),
@@ -242,7 +261,7 @@ def list_s4hana_api_rows_safe(
             "rows": action_result.get("rows", []),
             "columns": action_result.get("columns", []),
             "count": action_result.get("count", 0),
-            "source": action_result.get("source"),
+            "source": action_result.get("source", "mock"), # Fallback to mock if source missing
             "error": None,
         }
     except Exception as e:
@@ -251,6 +270,10 @@ def list_s4hana_api_rows_safe(
         return {
             "ok": False,
             "api_name": api_name,
+            "label": descriptor["label"] if descriptor else api_name,
+            "technical_name": descriptor["technical_name"] if descriptor else "Unknown",
+            "entity_set": descriptor["entity_set"] if descriptor else "Unknown",
+            "service_url": descriptor["service_url"] if descriptor else None,
             "source": "error",
             "columns": descriptor["columns"] if descriptor else [],
             "rows": [],

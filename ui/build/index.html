@@ -603,12 +603,15 @@
         );
 
         const payload = await response.json();
+        console.log("Rows payload received:", payload);
 
-        elements.sourceValue.textContent = payload.source || "—";
+        // Defensive status updates
+        elements.sourceValue.textContent = payload.source || (payload.ok === false ? "error" : "—");
         elements.countValue.textContent = String(payload.count ?? 0);
         elements.serviceValue.textContent = payload.service_url || serviceUrl || selected.service_url || "—";
 
         if (!response.ok || payload.ok === false) {
+          console.error("Payload error:", payload.error);
           const errorText = payload?.error
             ? `${payload.error.type}: ${payload.error.message}`
             : `Request failed with HTTP ${response.status}`;
@@ -618,7 +621,8 @@
         }
 
         renderTable(payload.columns || selected.columns || [], payload.rows || []);
-        setMessage(`Loaded ${payload.count ?? 0} row(s) from ${payload.source}.`);
+        const sourceLabel = payload.source || "unknown source";
+        setMessage(`Loaded ${payload.count ?? 0} row(s) from ${sourceLabel}.`);
       } catch (error) {
         elements.sourceValue.textContent = "—";
         elements.countValue.textContent = "0";
