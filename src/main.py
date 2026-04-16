@@ -45,6 +45,23 @@ DEFAULT_API_REGISTRY: dict[str, dict[str, Any]] = {
             {"SalesOrder": "500002", "SalesOrderType": "RE"},
         ],
     },
+    "products": {
+        "api_name": "products",
+        "label": "Products",
+        "technical_name": "API_PRODUCT_SRV",
+        "entity_set": "A_Product",
+        "service_url": "https://sandbox.api.sap.com/s4hanacloud/sap/opu/odata/sap/API_PRODUCT_SRV",
+        "default_top": 5,
+        "description": "Access Product master data from SAP S/4HANA Cloud.",
+        "columns": [
+            {"key": "Product", "label": "Product"},
+            {"key": "ProductType", "label": "Type"},
+        ],
+        "mock_rows": [
+            {"Product": "Z-100", "ProductType": "FERT"},
+            {"Product": "Z-200", "ProductType": "HAWA"},
+        ],
+    },
 }
 
 
@@ -109,8 +126,12 @@ def fetch_s4hana_api_rows(
     try:
         requests.get(
             f"{service}/$metadata",
-            headers={"APIKey": api_key, "Accept": "application/xml"},
-            timeout=10,
+            headers={
+                "APIKey": api_key,
+                "apikey": api_key,
+                "Accept": "application/xml",
+            },
+            timeout=5,
         )
     except Exception:
         pass  # not fatal
@@ -126,6 +147,7 @@ def fetch_s4hana_api_rows(
         },
         headers={
             "APIKey": api_key,
+            "apikey": api_key,
             "Accept": "application/json",
         },
         timeout=30,
@@ -201,20 +223,26 @@ def list_s4hana_api_rows_safe(
     use_mock: bool = True,
 ):
     try:
-        result = fetch_s4hana_api_rows(
+        action_result = fetch_s4hana_api_rows(
             api_name=api_name,
             api_key=api_key,
             service_url=service_url,
             top=top,
             use_mock=use_mock,
         ).result()
+
+        # Build response explicitly to avoid future-proxy issues
         return {
             "ok": True,
-            "source": result.get("source", "unknown"),
-            "columns": result.get("columns", []),
-            "rows": result.get("rows", []),
-            "count": result.get("count", 0),
-            **result,
+            "api_name": action_result.get("api_name"),
+            "label": action_result.get("label"),
+            "technical_name": action_result.get("technical_name"),
+            "entity_set": action_result.get("entity_set"),
+            "service_url": action_result.get("service_url"),
+            "rows": action_result.get("rows", []),
+            "columns": action_result.get("columns", []),
+            "count": action_result.get("count", 0),
+            "source": action_result.get("source"),
             "error": None,
         }
     except Exception as e:
