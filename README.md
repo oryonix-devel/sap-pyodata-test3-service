@@ -1,6 +1,6 @@
 # sap-pyodata-test-service
 
-Oryonix service that calls **SAP S/4HANA Cloud** OData service **API_BUSINESS_PARTNER** (Business Partner, A2X) using [pyodata](https://github.com/SAP/python-pyodata) and `requests`, matching the SAP API Business Hub sandbox pattern (APIKey header only).
+Oryonix service that calls **SAP S/4HANA Cloud** OData service **API_BUSINESS_PARTNER** (Business Partner, A2X) using `requests`, matching the SAP API Business Hub sandbox pattern (APIKey header only).
 
 > Note: The brief mentioned “Oracle Business Accelerator Hub”; the reference script and this service target **SAP API Business Hub** / SAP OData.
 
@@ -11,13 +11,13 @@ Oryonix service that calls **SAP S/4HANA Cloud** OData service **API_BUSINESS_PA
 - `spec/server.yaml` — OpenAPI 3.0.0; `operationId` matches flow names.
 - `ui/build/index.html` — minimal UI placeholder.
 - `artifacts/` — build output directory (per Oryonix layout).
-- `requirements.txt` — `pyodata`, `requests`.
+- `requirements.txt` — `requests`.
 
 ## Design (Oryonix)
 
 | Piece | Role |
 |--------|------|
-| `fetch_business_partners` | `@onix.compute` — OData HTTP + parsing inside a durable activity. |
+| `fetch_s4hana_api_rows` | `@onix.action` — OData HTTP + parsing inside a durable action. |
 | `list_business_partners` | `@onix.flow` — orchestrates one compute call; returns JSON. |
 | `list_business_partners_safe` | `@onix.flow` — same, but returns structured errors for connectivity checks. |
 
