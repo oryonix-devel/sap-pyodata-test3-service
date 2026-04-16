@@ -16,7 +16,7 @@ DEFAULT_SERVICE_URL = (
     "https://sandbox.api.sap.com/s4hanacloud/sap/opu/odata/sap/API_BUSINESS_PARTNER"
 )
 
-@onix.compute
+@onix.action
 def fetch_business_partners(*, service_url: str, api_key: str, top: int):
     """
     Load Business Partner entities using raw REST/JSON.
