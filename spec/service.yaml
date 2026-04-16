@@ -1,27 +1,101 @@
 openapi: 3.0.0
 info:
-  title: Hello World API
-  description: A simple API that accepts any request and responds.
+  title: SAP Business Partner (pyodata) API
+  description: >
+    OData access to SAP S/4HANA Cloud Public Edition API_BUSINESS_PARTNER (A2X)
+    via pyodata, using the SAP API Business Hub sandbox host by default.
   version: 1.0.0
 
 paths:
-  /hello:
+  /business-partners/list:
     post:
-      summary: Accepts any request and responds with the same structure
-      operationId: hello_world
+      summary: List Business Partners (strict — errors fail the flow)
+      operationId: list_business_partners
       requestBody:
-        description: Any valid JSON object
         required: true
         content:
           application/json:
             schema:
               type: object
-              additionalProperties: true
+              required:
+                - api_key
+              properties:
+                api_key:
+                  type: string
+                  description: SAP API Business Hub API key (APIKey header)
+                service_url:
+                  type: string
+                  description: >
+                    Base OData service URL (default — SAP sandbox
+                    API_BUSINESS_PARTNER)
+                top:
+                  type: integer
+                  default: 5
+                  minimum: 1
+                  maximum: 100
       responses:
         "200":
-          description: Successfully echoes the input
+          description: Business Partner rows
           content:
             application/json:
               schema:
                 type: object
-                additionalProperties: true
+                properties:
+                  service_url:
+                    type: string
+                  count:
+                    type: integer
+                  business_partners:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        BusinessPartner:
+                          type: string
+                        BusinessPartnerFullName:
+                          type: string
+                          nullable: true
+
+  /business-partners/list-safe:
+    post:
+      summary: List Business Partners (errors returned in JSON)
+      operationId: list_business_partners_safe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - api_key
+              properties:
+                api_key:
+                  type: string
+                service_url:
+                  type: string
+                top:
+                  type: integer
+                  default: 5
+                  minimum: 1
+                  maximum: 100
+      responses:
+        "200":
+          description: Result or structured error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  service_url:
+                    type: string
+                  count:
+                    type: integer
+                  business_partners:
+                    type: array
+                    items:
+                      type: object
+                  error:
+                    nullable: true
+                    type: object
