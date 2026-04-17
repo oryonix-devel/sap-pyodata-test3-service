@@ -3,13 +3,14 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-import requests
 import onix
+from .odata import ODataClient
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_API_NAME = "business_partners"
 
+# Pure metadata registry - NO MOCK DATA
 DEFAULT_API_REGISTRY: dict[str, dict[str, Any]] = {
     "business_partners": {
         "api_name": "business_partners",
@@ -22,10 +23,7 @@ DEFAULT_API_REGISTRY: dict[str, dict[str, Any]] = {
         "columns": [
             {"key": "BusinessPartner", "label": "Business Partner"},
             {"key": "BusinessPartnerFullName", "label": "Full Name"},
-        ],
-        "mock_rows": [
-            {"BusinessPartner": "1000001", "BusinessPartnerFullName": "Acme Corp"},
-            {"BusinessPartner": "1000002", "BusinessPartnerFullName": "Northwind"},
+            {"key": "BusinessPartnerCategory", "label": "Category"},
         ],
     },
     "sales_orders": {
@@ -39,10 +37,7 @@ DEFAULT_API_REGISTRY: dict[str, dict[str, Any]] = {
         "columns": [
             {"key": "SalesOrder", "label": "Sales Order"},
             {"key": "SalesOrderType", "label": "Type"},
-        ],
-        "mock_rows": [
-            {"SalesOrder": "500001", "SalesOrderType": "OR"},
-            {"SalesOrder": "500002", "SalesOrderType": "RE"},
+            {"key": "SoldToParty", "label": "Sold-To Party"},
         ],
     },
     "products": {
@@ -56,10 +51,7 @@ DEFAULT_API_REGISTRY: dict[str, dict[str, Any]] = {
         "columns": [
             {"key": "Product", "label": "Product"},
             {"key": "ProductType", "label": "Type"},
-        ],
-        "mock_rows": [
-            {"Product": "Z-100", "ProductType": "FERT"},
-            {"Product": "Z-200", "ProductType": "HAWA"},
+            {"key": "BaseUnit", "label": "Unit"},
         ],
     },
     "purchase_orders": {
@@ -76,10 +68,6 @@ DEFAULT_API_REGISTRY: dict[str, dict[str, Any]] = {
             {"key": "PurchasingOrganization", "label": "Purchasing Org"},
             {"key": "Supplier", "label": "Supplier"},
         ],
-        "mock_rows": [
-            {"PurchaseOrder": "4500001", "CompanyCode": "1010", "PurchasingOrganization": "1010", "Supplier": "1000001"},
-            {"PurchaseOrder": "4500002", "CompanyCode": "1010", "PurchasingOrganization": "1010", "Supplier": "1000002"},
-        ],
     },
 }
 
@@ -94,100 +82,89 @@ def _find_api_descriptor(*, api_name: str) -> dict[str, Any]:
     return DEFAULT_API_REGISTRY[api_name]
 
 
-def _extract_entries(*, payload: dict[str, Any]) -> list[dict[str, Any]]:
-    # Handles SAP OData V2 + V4
-    if "d" in payload:
-        d = payload["d"]
-        if isinstance(d, dict) and "results" in d:
-            return d["results"]
-        return [d]
-    return payload.get("value", [])
-
-
 # -------------------------
-# Compute
+# Actions (Focused I/O)
 # -------------------------
 
 @onix.action
-def fetch_s4hana_api_rows(
+def execute_sap_odata_read(
+    *,
+    service_url: str,
+    api_key: str,
+    entity_set_name: str,
+    select_fields: list[str],
+    top: int,
+) -> list[dict[str, Any]]:
+    """
+    Focused action for executing a read-only OData query across the network.
+    Following Oryonix best practices, this action is strictly for side-effects (I/O).
+    """
+    client = ODataClient(service_url=service_url, api_key=api_key)
+    
+    # Execute network call via the OData client
+    return (
+        client.entity_sets.__getattr__(entity_set_name)
+        .select(fields=select_fields)
+        .top(n=top)
+        .execute()
+    )
+
+
+# -------------------------
+# Logic Helpers (Regular Python Functions)
+# -------------------------
+
+def _process_odata_rows(*, entries: list[dict[str, Any]], columns: list[dict[str, str]]) -> list[dict[str, Any]]:
+    """Pure-Python logic for transforming OData entries into clean rows."""
+    return [
+        {col["key"]: entry.get(col["key"]) for col in columns}
+        for entry in entries
+    ]
+
+
+# -------------------------
+# Flows (Orchestration)
+# -------------------------
+
+@onix.flow
+def list_s4hana_apis(*, api_key: str | None = None) -> dict[str, Any]:
+    """Lists all available SAP API descriptors. Serves as an API entrypoint flow."""
+    return {
+        "default_api_name": DEFAULT_API_NAME,
+        "available_apis": list(DEFAULT_API_REGISTRY.values()),
+    }
+
+
+@onix.flow
+def list_s4hana_api_rows(
     *,
     api_name: str,
     api_key: str,
-    service_url: str | None,
-    top: int,
-    use_mock: bool,
+    service_url: str | None = None,
+    top: int = 5,
 ) -> dict[str, Any]:
-
+    """
+    Orchestrates the metadata lookup and OData execution.
+    Complies with Oryonix durability by calling actions for side effects.
+    """
     descriptor = _find_api_descriptor(api_name=api_name)
     service = (service_url or descriptor["service_url"]).rstrip("/")
-    top = max(1, min(int(top), 100))
+    limit = max(1, min(int(top), 100))
 
-    # ✅ MOCK MODE
-    if use_mock:
-        rows = descriptor["mock_rows"][:top]
-        return {
-            "api_name": api_name,
-            "label": descriptor["label"],
-            "technical_name": descriptor["technical_name"],
-            "entity_set": descriptor["entity_set"],
-            "service_url": service,
-            "rows": rows,
-            "columns": descriptor["columns"],
-            "count": len(rows),
-            "source": "mock",
-        }
-
-    # ✅ REAL SAP CALL
     if not api_key:
-        raise ValueError("api_key required when use_mock=false")
+        raise ValueError("SAP API Key is required for real-time access.")
 
-    # 🔥 Important: warm-up metadata call (SAP quirk)
-    try:
-        requests.get(
-            f"{service}/$metadata",
-            headers={
-                "APIKey": api_key,
-                "apikey": api_key,
-                "Accept": "application/xml",
-            },
-            timeout=5,
-        )
-    except Exception:
-        pass  # not fatal
+    # Call the focused I/O action
+    entries = execute_sap_odata_read(
+        service_url=service,
+        api_key=api_key,
+        entity_set_name=descriptor["entity_set"],
+        select_fields=[c["key"] for c in descriptor["columns"]],
+        top=limit,
+    ).result()
 
-    url = f"{service}/{descriptor['entity_set']}"
-
-    res = requests.get(
-        url,
-        params={
-            "$top": top,
-            "$select": ",".join(c["key"] for c in descriptor["columns"]),
-            "$format": "json",
-        },
-        headers={
-            "APIKey": api_key,
-            "apikey": api_key,
-            "Accept": "application/json",
-        },
-        timeout=30,
-    )
-
-    if not res.ok:
-        try:
-            error_data = res.json()
-            message = error_data.get("error", {}).get("message", {}).get("value", res.text)
-        except Exception:
-            message = res.text
-        raise RuntimeError(f"SAP API Error ({res.status_code}): {message}")
-
-    data = res.json()
-
-    entries = _extract_entries(payload=data)
-
-    rows = [
-        {col["key"]: entry.get(col["key"]) for col in descriptor["columns"]}
-        for entry in entries
-    ]
+    # Apply deterministic transformation logic
+    rows = _process_odata_rows(entries=entries, columns=descriptor["columns"])
 
     return {
         "api_name": api_name,
@@ -202,36 +179,6 @@ def fetch_s4hana_api_rows(
     }
 
 
-# -------------------------
-# FLOWS
-# -------------------------
-
-@onix.flow
-def list_s4hana_apis(*, api_key: str | None = None):
-    return {
-        "default_api_name": DEFAULT_API_NAME,
-        "available_apis": list(DEFAULT_API_REGISTRY.values()),
-    }
-
-
-@onix.flow
-def list_s4hana_api_rows(
-    *,
-    api_name: str,
-    api_key: str,
-    service_url: str | None = None,
-    top: int = 5,
-    use_mock: bool = True,
-):
-    return fetch_s4hana_api_rows(
-        api_name=api_name,
-        api_key=api_key,
-        service_url=service_url,
-        top=top,
-        use_mock=use_mock,
-    ).result()
-
-
 @onix.flow
 def list_s4hana_api_rows_safe(
     *,
@@ -239,41 +186,28 @@ def list_s4hana_api_rows_safe(
     api_key: str,
     service_url: str | None = None,
     top: int = 5,
-    use_mock: bool = True,
-):
+) -> dict[str, Any]:
+    """Safe wrapper flow (endpoint) that returns structured errors instead of raising."""
     try:
-        action_result = fetch_s4hana_api_rows(
+        # Reusing the existing flow orchestration
+        result = list_s4hana_api_rows(
             api_name=api_name,
             api_key=api_key,
             service_url=service_url,
             top=top,
-            use_mock=use_mock,
         ).result()
-
-        # Build response explicitly to avoid future-proxy issues
-        return {
-            "ok": True,
-            "api_name": action_result.get("api_name", api_name),
-            "label": action_result.get("label"),
-            "technical_name": action_result.get("technical_name"),
-            "entity_set": action_result.get("entity_set"),
-            "service_url": action_result.get("service_url"),
-            "rows": action_result.get("rows", []),
-            "columns": action_result.get("columns", []),
-            "count": action_result.get("count", 0),
-            "source": action_result.get("source", "mock"), # Fallback to mock if source missing
-            "error": None,
-        }
+        result["ok"] = True
+        result["error"] = None
+        return result
     except Exception as e:
         descriptor = DEFAULT_API_REGISTRY.get(api_name)
-
         return {
             "ok": False,
             "api_name": api_name,
             "label": descriptor["label"] if descriptor else api_name,
             "technical_name": descriptor["technical_name"] if descriptor else "Unknown",
             "entity_set": descriptor["entity_set"] if descriptor else "Unknown",
-            "service_url": descriptor["service_url"] if descriptor else None,
+            "service_url": descriptor["service_url"] if descriptor else service_url,
             "source": "error",
             "columns": descriptor["columns"] if descriptor else [],
             "rows": [],
@@ -281,13 +215,12 @@ def list_s4hana_api_rows_safe(
             "error": {
                 "type": type(e).__name__,
                 "message": str(e),
-                "details": getattr(e, "message", None) if isinstance(e, RuntimeError) else None,
             },
         }
 
 
 # -------------------------
-# EXPORTS
+# Exports
 # -------------------------
 
 __all__ = [

@@ -3,348 +3,337 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>SAP S/4HANA API Explorer</title>
+  <title>SAP S/4HANA OData Explorer | Oryonix</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      color-scheme: light;
-      --bg: #f6f8fb;
-      --card: #ffffff;
-      --text: #1f2937;
-      --muted: #6b7280;
-      --line: #e5e7eb;
-      --accent: #0f766e;
-      --accent-soft: #ccfbf1;
-      --danger: #b91c1c;
+      color-scheme: dark;
+      --bg: #020617;
+      --card: rgba(15, 23, 42, 0.6);
+      --card-hover: rgba(15, 23, 42, 0.8);
+      --border: rgba(51, 65, 85, 0.4);
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #10b981;
+      --accent-soft: rgba(16, 185, 129, 0.1);
+      --danger: #f43f5e;
+      --glass: blur(12px) saturate(180%);
     }
 
     * {
       box-sizing: border-box;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     body {
       margin: 0;
-      font-family: Inter, Segoe UI, Arial, sans-serif;
+      font-family: 'Outfit', sans-serif;
       background: var(--bg);
+      background-image: 
+        radial-gradient(circle at 0% 0%, rgba(16, 185, 129, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 100% 100%, rgba(14, 165, 233, 0.05) 0%, transparent 50%);
       color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
     }
 
     .shell {
-      max-width: 1280px;
+      max-width: 1400px;
       margin: 0 auto;
-      padding: 24px;
+      padding: 40px 24px;
     }
 
-    .hero {
-      display: grid;
-      gap: 10px;
-      margin-bottom: 18px;
+    header {
+      margin-bottom: 40px;
+      text-align: center;
     }
 
-    .hero h1 {
+    header h1 {
+      font-size: 3.5rem;
+      font-weight: 700;
       margin: 0;
-      font-size: 28px;
-      line-height: 1.1;
+      background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.02em;
     }
 
-    .hero p {
-      margin: 0;
+    header p {
       color: var(--muted);
-      max-width: 900px;
+      font-size: 1.1rem;
+      margin-top: 12px;
     }
 
-    .panel {
+    .glass-panel {
       background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      box-shadow: 0 10px 30px rgba(17, 24, 39, 0.05);
-      padding: 18px;
-      margin-bottom: 16px;
+      backdrop-filter: var(--glass);
+      -webkit-backdrop-filter: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
     }
 
-    .controls {
+    .glass-panel:hover {
+      border-color: rgba(148, 163, 184, 0.3);
+    }
+
+    .controls-grid {
       display: grid;
-      grid-template-columns: 1.1fr 1.4fr 1fr 0.5fr;
-      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 24px;
+      align-items: flex-end;
     }
 
-    .control {
+    .control-group {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 10px;
     }
 
-    .control label {
-      font-size: 13px;
+    .control-group label {
+      font-size: 0.85rem;
+      font-weight: 600;
       color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
 
-    .control input,
-    .control select {
-      width: 100%;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 11px 12px;
-      font-size: 14px;
-      background: #fff;
+    input, select {
+      background: rgba(2, 6, 23, 0.5);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 18px;
       color: var(--text);
+      font-family: inherit;
+      font-size: 0.95rem;
+      width: 100%;
     }
 
-    .row {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      align-items: center;
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px var(--accent-soft);
     }
 
-    .toggle {
+    .btn {
+      padding: 14px 28px;
+      border-radius: 14px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      border: none;
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 8px;
-      font-size: 14px;
-      color: var(--text);
-      user-select: none;
     }
 
-    .toggle input {
-      width: 16px;
-      height: 16px;
-    }
-
-    .actions {
-      display: flex;
-      gap: 10px;
-      align-items: end;
-    }
-
-    button {
-      border: none;
-      border-radius: 12px;
-      padding: 11px 16px;
-      font-weight: 600;
-      font-size: 14px;
-      cursor: pointer;
-      transition: transform 0.08s ease, opacity 0.12s ease;
-    }
-
-    button:hover {
-      transform: translateY(-1px);
-    }
-
-    .primary {
+    .btn-primary {
       background: var(--accent);
-      color: white;
+      color: #020617;
+      box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
     }
 
-    .secondary {
-      background: #eef2f7;
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-secondary {
+      background: rgba(248, 240, 252, 0.05);
       color: var(--text);
+      border: 1px solid var(--border);
     }
 
-    .status-grid {
+    .btn-secondary:hover {
+      background: rgba(248, 240, 252, 0.1);
+    }
+
+    .status-cards {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
-      margin-bottom: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
     }
 
-    .stat {
+    .status-card {
       background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 20px;
+      text-align: center;
     }
 
-    .stat .label {
+    .status-card .label {
+      font-size: 0.75rem;
       color: var(--muted);
-      font-size: 12px;
-      margin-bottom: 6px;
       text-transform: uppercase;
-      letter-spacing: 0.04em;
+      margin-bottom: 8px;
     }
 
-    .stat .value {
+    .status-card .value {
+      font-size: 1.1rem;
       font-weight: 700;
-      font-size: 15px;
-      word-break: break-word;
     }
 
-    .api-info {
-      display: grid;
-      gap: 8px;
-      margin-bottom: 14px;
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 99px;
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      margin-bottom: 12px;
     }
 
-    .api-info h2 {
-      margin: 0;
-      font-size: 20px;
-    }
+    .badge-accent { background: var(--accent-soft); color: var(--accent); }
 
-    .api-info p {
-      margin: 0;
-      color: var(--muted);
-    }
-
-    .table-wrap {
-      overflow: auto;
-      border: 1px solid var(--line);
+    .table-container {
+      overflow-x: auto;
       border-radius: 16px;
-      background: #fff;
+      border: 1px solid var(--border);
+      background: rgba(2, 6, 23, 0.3);
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 760px;
+      font-size: 0.95rem;
     }
 
-    thead th {
-      position: sticky;
-      top: 0;
-      background: #f9fafb;
+    th {
       text-align: left;
-      font-size: 13px;
-      color: #374151;
-      padding: 12px 14px;
-      border-bottom: 1px solid var(--line);
-    }
-
-    tbody td {
-      padding: 12px 14px;
-      border-bottom: 1px solid var(--line);
-      font-size: 14px;
-      vertical-align: top;
-    }
-
-    tbody tr:nth-child(even) {
-      background: #fcfcfd;
-    }
-
-    .empty,
-    .error {
-      padding: 18px;
+      padding: 18px 20px;
+      background: rgba(248, 240, 252, 0.03);
       color: var(--muted);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
     }
 
-    .error {
+    td {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    tr:hover td {
+      background: rgba(148, 163, 184, 0.05);
+    }
+
+    .loader {
+      display: none;
+      margin: 40px auto;
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--accent-soft);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .message {
+      padding: 16px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      margin-top: 16px;
+      display: none;
+    }
+
+    .message-error {
+      background: rgba(244, 63, 94, 0.1);
       color: var(--danger);
-      white-space: pre-wrap;
+      border: 1px solid rgba(244, 63, 94, 0.2);
     }
 
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 10px;
-      border-radius: 999px;
+    .message-success {
       background: var(--accent-soft);
-      color: #115e59;
-      font-size: 12px;
-      font-weight: 700;
-      width: fit-content;
+      color: var(--accent);
+      border: 1px solid var(--accent-soft);
     }
 
-    .subtle {
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    @media (max-width: 1100px) {
-      .controls,
-      .status-grid {
-        grid-template-columns: 1fr 1fr;
-      }
-    }
-
-    @media (max-width: 680px) {
-      .shell {
-        padding: 14px;
-      }
-
-      .controls,
-      .status-grid {
-        grid-template-columns: 1fr;
-      }
+    @media (max-width: 768px) {
+      .shell { padding: 20px 16px; }
+      header h1 { font-size: 2.2rem; }
     }
   </style>
 </head>
 <body>
   <div class="shell">
-    <div class="hero">
-      <h1>SAP S/4HANA API Explorer</h1>
-      <p>Choose an API, enter your SAP token, and render live or mock table data from the Oryonix service.</p>
-    </div>
+    <header>
+      <h1>OData Explorer</h1>
+      <p>High-performance SAP S/4HANA connectivity via Oryonix</p>
+    </header>
 
-    <div class="panel">
-      <div class="controls">
-        <div class="control">
-          <label for="apiSelect">SAP API</label>
+    <div class="glass-panel">
+      <div class="controls-grid">
+        <div class="control-group">
+          <label for="apiSelect">Target Service</label>
           <select id="apiSelect"></select>
         </div>
 
-        <div class="control">
-          <label for="serviceUrl">Service URL override</label>
-          <input id="serviceUrl" type="text" placeholder="Leave blank to use the API default URL" />
-        </div>
-
-        <div class="control">
-          <label for="apiKey">SAP API token</label>
+        <div class="control-group">
+          <label for="apiKey">SAP Sandbox API Key</label>
           <input id="apiKey" type="password" placeholder="Paste APIKey here" />
         </div>
 
-        <div class="actions">
-          <button class="primary" id="loadButton">Load rows</button>
-        </div>
-      </div>
-
-      <div class="row" style="margin-top: 14px;">
-        <label class="toggle">
-          <input id="useMock" type="checkbox" checked />
-          Use mock data
-        </label>
-
-        <div class="control" style="min-width: 120px;">
-          <label for="top">Top rows</label>
+        <div class="control-group">
+          <label for="top">Row Limit</label>
           <input id="top" type="number" min="1" max="100" value="5" />
         </div>
 
-        <button class="secondary" id="reloadApisButton">Reload APIs</button>
+        <div class="control-group">
+          <button class="btn btn-primary" id="loadButton">
+            <span>Fetch Data</span>
+          </button>
+        </div>
+      </div>
+      
+      <div id="statusMessage" class="message"></div>
+    </div>
+
+    <div class="status-cards">
+      <div class="status-card">
+        <div class="label">Status</div>
+        <div class="value" id="statusValue">Idle</div>
+      </div>
+      <div class="status-card">
+        <div class="label">Active Entity</div>
+        <div class="value" id="activeEntityValue">—</div>
+      </div>
+      <div class="status-card">
+        <div class="label">Count</div>
+        <div class="value" id="countValue">0</div>
+      </div>
+      <div class="status-card">
+        <div class="label">Response Time</div>
+        <div class="value" id="timeValue">0ms</div>
       </div>
     </div>
 
-    <div class="status-grid">
-      <div class="stat">
-        <div class="label">Selected API</div>
-        <div class="value" id="selectedApiValue">—</div>
-      </div>
-      <div class="stat">
-        <div class="label">Source</div>
-        <div class="value" id="sourceValue">—</div>
-      </div>
-      <div class="stat">
-        <div class="label">Rows</div>
-        <div class="value" id="countValue">—</div>
-      </div>
-      <div class="stat">
-        <div class="label">Service URL</div>
-        <div class="value" id="serviceValue">—</div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <div class="api-info">
-        <div class="badge" id="apiBadge">Loading APIs…</div>
-        <h2 id="apiTitle">Select an API to view data</h2>
-        <p id="apiDescription">The service will load metadata and render a table with the returned rows.</p>
+    <div class="glass-panel" style="padding: 0; overflow: hidden;">
+      <div style="padding: 24px 32px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <div id="techBadge" class="badge badge-accent">Ready</div>
+          <h2 id="serviceTitle" style="margin: 0; font-size: 1.25rem;">Live Data Preview</h2>
+        </div>
+        <button class="btn btn-secondary" id="reloadApisButton">Refresh Schema</button>
       </div>
 
-      <div id="message" class="subtle">Ready.</div>
-      <div style="height: 12px;"></div>
+      <div class="loader" id="mainLoader"></div>
 
-      <div class="table-wrap">
+      <div class="table-container" id="tableContainer">
         <table id="dataTable">
           <thead><tr id="tableHeadRow"></tr></thead>
           <tbody id="tableBody">
-            <tr><td class="empty">No data loaded yet.</td></tr>
+            <tr><td colspan="100%" style="text-align: center; padding: 60px; color: var(--muted);">Select an API and fetch data to begin exploration.</td></tr>
           </tbody>
         </table>
       </div>
@@ -352,307 +341,136 @@
   </div>
 
   <script>
-    const API_LIST_ENDPOINT = "/s4hana/apis";
-    const API_ROWS_ENDPOINT_PREFIX = "/s4hana/apis";
-    const FALLBACK_APIS = [
-      {
-        api_name: "business_partners",
-        label: "Business Partners",
-        technical_name: "API_BUSINESS_PARTNER",
-        entity_set: "A_BusinessPartner",
-        service_url: "https://sandbox.api.sap.com/s4hanacloud/sap/opu/odata/sap/API_BUSINESS_PARTNER",
-        default_top: 5,
-        description: "Business partner master data used for customers, suppliers, and general partner lookups.",
-        columns: [
-          { key: "BusinessPartner", label: "Business Partner" },
-          { key: "BusinessPartnerFullName", label: "Full Name" },
-          { key: "BusinessPartnerCategory", label: "Category" },
-          { key: "Country", label: "Country" }
-        ]
-      },
-      {
-        api_name: "sales_orders",
-        label: "Sales Orders",
-        technical_name: "API_SALES_ORDER_SRV",
-        entity_set: "A_SalesOrder",
-        service_url: "https://sandbox.api.sap.com/s4hanacloud/sap/opu/odata/sap/API_SALES_ORDER_SRV",
-        default_top: 5,
-        description: "Sales order header data for order monitoring and downstream process demos.",
-        columns: [
-          { key: "SalesOrder", label: "Sales Order" },
-          { key: "SalesOrderType", label: "Order Type" },
-          { key: "SoldToParty", label: "Sold-To Party" },
-          { key: "OverallSDDocumentStatus", label: "Status" }
-        ]
-      },
-      {
-        api_name: "products",
-        label: "Products",
-        technical_name: "API_PRODUCT_SRV",
-        entity_set: "A_Product",
-        service_url: "https://sandbox.api.sap.com/s4hanacloud/sap/opu/odata/sap/API_PRODUCT_SRV",
-        default_top: 5,
-        description: "Material and product master data for catalog, pricing, and planning demos.",
-        columns: [
-          { key: "Product", label: "Product" },
-          { key: "ProductType", label: "Product Type" },
-          { key: "BaseUnit", label: "Base Unit" },
-          { key: "ProductGroup", label: "Product Group" }
-        ]
-      },
-      {
-        api_name: "purchase_orders",
-        label: "Purchase Orders",
-        technical_name: "API_PURCHASEORDER_PROCESS_SRV",
-        entity_set: "A_PurchaseOrder",
-        service_url: "https://sandbox.api.sap.com/s4hanacloud/sap/opu/odata/sap/API_PURCHASEORDER_PROCESS_SRV",
-        default_top: 5,
-        description: "Purchase order headers for procurement and supplier demos.",
-        columns: [
-          { key: "PurchaseOrder", label: "Purchase Order" },
-          { key: "CompanyCode", label: "Company Code" },
-          { key: "PurchasingOrganization", label: "Purchasing Org" },
-          { key: "Supplier", label: "Supplier" }
-        ]
-      }
-    ];
-
+    const API_LIST_URL = "/s4hana/apis";
+    const API_ROWS_BASE = "/s4hana/apis";
+    
     const elements = {
-      apiSelect: document.getElementById("apiSelect"),
-      serviceUrl: document.getElementById("serviceUrl"),
-      apiKey: document.getElementById("apiKey"),
-      useMock: document.getElementById("useMock"),
-      top: document.getElementById("top"),
-      loadButton: document.getElementById("loadButton"),
-      reloadApisButton: document.getElementById("reloadApisButton"),
-      selectedApiValue: document.getElementById("selectedApiValue"),
-      sourceValue: document.getElementById("sourceValue"),
-      countValue: document.getElementById("countValue"),
-      serviceValue: document.getElementById("serviceValue"),
-      apiBadge: document.getElementById("apiBadge"),
-      apiTitle: document.getElementById("apiTitle"),
-      apiDescription: document.getElementById("apiDescription"),
-      message: document.getElementById("message"),
-      tableHeadRow: document.getElementById("tableHeadRow"),
-      tableBody: document.getElementById("tableBody"),
+      apiSelect: document.getElementById('apiSelect'),
+      apiKey: document.getElementById('apiKey'),
+      top: document.getElementById('top'),
+      loadButton: document.getElementById('loadButton'),
+      reloadApisButton: document.getElementById('reloadApisButton'),
+      statusValue: document.getElementById('statusValue'),
+      activeEntityValue: document.getElementById('activeEntityValue'),
+      countValue: document.getElementById('countValue'),
+      timeValue: document.getElementById('timeValue'),
+      statusMessage: document.getElementById('statusMessage'),
+      tableHeadRow: document.getElementById('tableHeadRow'),
+      tableBody: document.getElementById('tableBody'),
+      mainLoader: document.getElementById('mainLoader'),
+      tableContainer: document.getElementById('tableContainer'),
+      techBadge: document.getElementById('techBadge'),
+      serviceTitle: document.getElementById('serviceTitle'),
     };
 
-    let apiMetadata = [];
+    let apiCache = [];
 
-    function escapeHtml(value) {
-      return String(value ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#39;");
+    function showMessage(text, type = 'success') {
+      elements.statusMessage.textContent = text;
+      elements.statusMessage.className = `message message-${type}`;
+      elements.statusMessage.style.display = 'block';
+      setTimeout(() => { elements.statusMessage.style.opacity = '0'; }, 4000);
+      setTimeout(() => { elements.statusMessage.style.display = 'none'; elements.statusMessage.style.opacity = '1'; }, 4500);
     }
 
-    function setMessage(text, isError = false) {
-      elements.message.textContent = text;
-      elements.message.style.color = isError ? "var(--danger)" : "var(--muted)";
+    function setUIState(loading = false) {
+      elements.mainLoader.style.display = loading ? 'block' : 'none';
+      elements.tableContainer.style.opacity = loading ? '0.3' : '1';
+      elements.loadButton.disabled = loading;
     }
 
-    function fillApiSelect(apis) {
-      elements.apiSelect.innerHTML = "";
-      for (const api of apis) {
-        const option = document.createElement("option");
-        option.value = api.api_name;
-        option.textContent = `${api.label} (${api.technical_name})`;
-        elements.apiSelect.appendChild(option);
-      }
-    }
-
-    function getSelectedApi() {
-      const apiName = elements.apiSelect.value;
-      return apiMetadata.find((item) => item.api_name === apiName) || null;
-    }
-
-    function renderApiHeader(api) {
-      if (!api) {
-        elements.apiBadge.textContent = "No API selected";
-        elements.apiTitle.textContent = "Select an API to view data";
-        elements.apiDescription.textContent = "The service will load metadata and render a table with the returned rows.";
-        elements.selectedApiValue.textContent = "—";
-        elements.sourceValue.textContent = "—";
-        elements.countValue.textContent = "—";
-        elements.serviceValue.textContent = "—";
-        return;
-      }
-
-      elements.apiBadge.textContent = api.technical_name;
-      elements.apiTitle.textContent = api.label;
-      elements.apiDescription.textContent = api.description || "";
-      elements.selectedApiValue.textContent = api.api_name;
-      elements.serviceValue.textContent = api.service_url || "—";
-    }
-
-    function renderTable(columns, rows) {
-      const safeColumns = Array.isArray(columns) ? columns : [];
-      const safeRows = Array.isArray(rows) ? rows : [];
-
-      elements.tableHeadRow.innerHTML = "";
-      if (safeColumns.length === 0 && safeRows.length > 0) {
-        const inferred = Object.keys(safeRows[0]).map((key) => ({ key, label: key }));
-        safeColumns.push(...inferred);
-      }
-
-      if (safeColumns.length === 0) {
-        elements.tableBody.innerHTML = '<tr><td class="empty">No columns available.</td></tr>';
-        return;
-      }
-
-      for (const column of safeColumns) {
-        const th = document.createElement("th");
-        th.textContent = column.label || column.key;
-        elements.tableHeadRow.appendChild(th);
-      }
-
-      if (safeRows.length === 0) {
-        elements.tableBody.innerHTML = '<tr><td class="empty" colspan="100%">No rows returned.</td></tr>';
-        return;
-      }
-
-      const bodyHtml = safeRows
-        .map((row) => {
-          const cells = safeColumns
-            .map((column) => `<td>${escapeHtml(row?.[column.key])}</td>`)
-            .join("");
-          return `<tr>${cells}</tr>`;
-        })
-        .join("");
-
-      elements.tableBody.innerHTML = bodyHtml;
-    }
-
-    async function loadApis() {
-      setMessage("Loading available APIs...");
+    async function fetchAPIs() {
       try {
-        const response = await fetch(API_LIST_ENDPOINT, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        const res = await fetch(API_LIST_URL, { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({})
         });
-
-        if (!response.ok) {
-          throw new Error(`API list request failed: ${response.status}`);
-        }
-
-        const payload = await response.json();
-        apiMetadata = Array.isArray(payload.available_apis) && payload.available_apis.length > 0
-          ? payload.available_apis
-          : FALLBACK_APIS;
-
-        fillApiSelect(apiMetadata);
-
-        const defaultName = payload.default_api_name || apiMetadata[0]?.api_name || "";
-        if (defaultName) {
-          elements.apiSelect.value = defaultName;
-        }
-
-        const selected = getSelectedApi();
-        renderApiHeader(selected);
-        if (selected) {
-          elements.top.value = String(selected.default_top ?? 5);
-          elements.serviceUrl.value = selected.service_url || "";
-        }
-
-        setMessage("API metadata loaded.");
-      } catch (error) {
-        apiMetadata = FALLBACK_APIS;
-        fillApiSelect(apiMetadata);
-        const selected = getSelectedApi() || apiMetadata[0];
-        if (selected) {
-          elements.apiSelect.value = selected.api_name;
-          elements.top.value = String(selected.default_top ?? 5);
-          elements.serviceUrl.value = selected.service_url || "";
-        }
-        renderApiHeader(selected);
-        setMessage(`Loaded fallback API list because metadata lookup failed: ${error.message}`, true);
+        const data = await res.json();
+        apiCache = data.available_apis;
+        
+        elements.apiSelect.innerHTML = apiCache.map(api => 
+          `<option value="${api.api_name}">${api.label} (${api.technical_name})</option>`
+        ).join('');
+        
+        updateHeader();
+      } catch (err) {
+        showMessage('Failed to load API registry: ' + err.message, 'error');
       }
     }
 
-    async function loadRows() {
-      const selected = getSelectedApi();
-      if (!selected) {
-        setMessage("Select an API first.", true);
+    function updateHeader() {
+      const selected = apiCache.find(a => a.api_name === elements.apiSelect.value);
+      if (selected) {
+        elements.serviceTitle.textContent = selected.label;
+        elements.techBadge.textContent = selected.technical_name;
+        elements.activeEntityValue.textContent = selected.entity_set;
+      }
+    }
+
+    async function loadData() {
+      const selected = apiCache.find(a => a.api_name === elements.apiSelect.value);
+      const key = elements.apiKey.value.trim();
+      const top = elements.top.value;
+
+      if (!key) {
+        showMessage('Please enter an SAP API Key', 'error');
         return;
       }
 
-      const apiKey = elements.apiKey.value.trim();
-      const serviceUrl = elements.serviceUrl.value.trim();
-      const top = Number(elements.top.value || selected.default_top || 5);
-      const useMock = elements.useMock.checked;
-
-      renderApiHeader(selected);
-      setMessage("Loading rows...");
+      setUIState(true);
+      elements.statusValue.textContent = 'Fetching...';
+      const start = performance.now();
 
       try {
-        const response = await fetch(
-          `${API_ROWS_ENDPOINT_PREFIX}/${encodeURIComponent(selected.api_name)}/rows-safe`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              api_key: apiKey,
-              service_url: serviceUrl || null,
-              top: top,
-              use_mock: useMock
-            })
-          }
-        );
+        const res = await fetch(`${API_ROWS_BASE}/${selected.api_name}/rows-safe`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ api_key: key, top: parseInt(top) })
+        });
+        
+        const result = await res.json();
+        const end = performance.now();
+        elements.timeValue.textContent = `${Math.round(end - start)}ms`;
 
-        const payload = await response.json();
-        console.log("Rows payload received:", payload);
-
-        // Defensive status updates
-        elements.sourceValue.textContent = payload.source || (payload.ok === false ? "error" : "—");
-        elements.countValue.textContent = String(payload.count ?? 0);
-        elements.serviceValue.textContent = payload.service_url || serviceUrl || selected.service_url || "—";
-
-        if (!response.ok || payload.ok === false) {
-          console.error("Payload error:", payload.error);
-          const errorText = payload?.error
-            ? `${payload.error.type}: ${payload.error.message}`
-            : `Request failed with HTTP ${response.status}`;
-          renderTable(payload.columns || selected.columns || [], []);
-          setMessage(errorText, true);
-          return;
+        if (!result.ok) {
+          throw new Error(result.error?.message || 'Unknown server error');
         }
 
-        renderTable(payload.columns || selected.columns || [], payload.rows || []);
-        const sourceLabel = payload.source || "unknown source";
-        setMessage(`Loaded ${payload.count ?? 0} row(s) from ${sourceLabel}.`);
-      } catch (error) {
-        elements.sourceValue.textContent = "—";
-        elements.countValue.textContent = "0";
-        renderTable(selected.columns || [], []);
-        setMessage(error.message, true);
+        renderTable(result.columns, result.rows);
+        elements.countValue.textContent = result.rows.length;
+        elements.statusValue.textContent = 'Linked';
+        showMessage(`Successfully retrieved ${result.rows.length} records.`);
+      } catch (err) {
+        elements.statusValue.textContent = 'Error';
+        showMessage(err.message, 'error');
+        elements.tableBody.innerHTML = `<tr><td colspan="100%" style="text-align: center; color: var(--danger); padding: 40px;">${err.message}</td></tr>`;
+      } finally {
+        setUIState(false);
       }
     }
 
-    elements.loadButton.addEventListener("click", loadRows);
-    elements.reloadApisButton.addEventListener("click", loadApis);
-    elements.apiSelect.addEventListener("change", () => {
-      const selected = getSelectedApi();
-      renderApiHeader(selected);
-      if (selected) {
-        elements.top.value = String(selected.default_top ?? 5);
-        if (!elements.serviceUrl.value.trim()) {
-          elements.serviceUrl.value = selected.service_url || "";
-        }
-        renderTable(selected.columns || [], []);
-        elements.sourceValue.textContent = "—";
-        elements.countValue.textContent = "—";
+    function renderTable(cols, rows) {
+      elements.tableHeadRow.innerHTML = cols.map(c => `<th>${c.label}</th>`).join('');
+      
+      if (rows.length === 0) {
+        elements.tableBody.innerHTML = '<tr><td colspan="100%" style="text-align: center; padding: 40px; color: var(--muted);">No records found in SAP for this query.</td></tr>';
+        return;
       }
-    });
 
-    loadApis().then(() => {
-      const selected = getSelectedApi();
-      if (selected) {
-        renderTable(selected.columns || [], []);
-      }
-    });
+      elements.tableBody.innerHTML = rows.map(row => `
+        <tr>
+          ${cols.map(c => `<td>${row[c.key] ?? '—'}</td>`).join('')}
+        </tr>
+      `).join('');
+    }
+
+    elements.loadButton.addEventListener('click', loadData);
+    elements.reloadApisButton.addEventListener('click', fetchAPIs);
+    elements.apiSelect.addEventListener('change', updateHeader);
+
+    // Init
+    fetchAPIs();
   </script>
 </body>
 </html>
