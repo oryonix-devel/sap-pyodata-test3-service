@@ -127,8 +127,8 @@ def _process_odata_rows(*, entries: list[dict[str, Any]], columns: list[dict[str
 # -------------------------
 
 @onix.flow
-def list_s4hana_apis(*, api_key: str | None = None) -> dict[str, Any]:
-    """Lists all available SAP API descriptors. Serves as an API entrypoint flow."""
+def list_s4hana_apis() -> dict[str, Any]:
+    """Lists all available SAP API descriptors. Serves as a public API entrypoint flow."""
     return {
         "default_api_name": DEFAULT_API_NAME,
         "available_apis": list(DEFAULT_API_REGISTRY.values()),

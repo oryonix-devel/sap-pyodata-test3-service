@@ -3,30 +3,26 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>SAP S/4HANA OData Explorer | Oryonix</title>
+  <title>SAP OData Explorer | Oryonix Premium</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root {
       color-scheme: dark;
       --bg: #020617;
       --card: rgba(15, 23, 42, 0.6);
-      --card-hover: rgba(15, 23, 42, 0.8);
       --border: rgba(51, 65, 85, 0.4);
       --text: #f8fafc;
       --muted: #94a3b8;
       --accent: #10b981;
-      --accent-soft: rgba(16, 185, 129, 0.1);
       --danger: #f43f5e;
       --glass: blur(12px) saturate(180%);
+      --console-bg: #0f172a;
     }
 
-    * {
-      box-sizing: border-box;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
+    * { box-sizing: border-box; transition: all 0.15s ease; }
+    
     body {
       margin: 0;
       font-family: 'Outfit', sans-serif;
@@ -36,34 +32,27 @@
         radial-gradient(circle at 100% 100%, rgba(14, 165, 233, 0.05) 0%, transparent 50%);
       color: var(--text);
       min-height: 100vh;
-      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
     }
 
-    .shell {
+    .app-container {
+      flex: 1;
       max-width: 1400px;
       margin: 0 auto;
       padding: 40px 24px;
+      width: 100%;
     }
 
-    header {
-      margin-bottom: 40px;
-      text-align: center;
-    }
-
+    header { margin-bottom: 40px; text-align: center; }
     header h1 {
-      font-size: 3.5rem;
+      font-size: 3rem;
       font-weight: 700;
       margin: 0;
       background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       letter-spacing: -0.02em;
-    }
-
-    header p {
-      color: var(--muted);
-      font-size: 1.1rem;
-      margin-top: 12px;
     }
 
     .glass-panel {
@@ -77,400 +66,320 @@
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
     }
 
-    .glass-panel:hover {
-      border-color: rgba(148, 163, 184, 0.3);
-    }
-
-    .controls-grid {
+    .grid-4 {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 24px;
-      align-items: flex-end;
     }
 
-    .control-group {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .control-group label {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
+    .field { display: flex; flex-direction: column; gap: 8px; }
+    .field label { font-size: 0.8rem; font-weight: 600; color: var(--muted); text-transform: uppercase; }
+    
     input, select {
       background: rgba(2, 6, 23, 0.5);
       border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 14px 18px;
+      border-radius: 12px;
+      padding: 12px 16px;
       color: var(--text);
-      font-family: inherit;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       width: 100%;
     }
 
-    input:focus, select:focus {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 4px var(--accent-soft);
-    }
+    input:focus, select:focus { outline: none; border-color: var(--accent); }
 
     .btn {
-      padding: 14px 28px;
-      border-radius: 14px;
+      padding: 12px 24px;
+      border-radius: 12px;
       font-weight: 700;
-      font-size: 0.95rem;
       cursor: pointer;
       border: none;
       display: inline-flex;
       align-items: center;
-      justify-content: center;
       gap: 8px;
     }
 
-    .btn-primary {
-      background: var(--accent);
-      color: #020617;
-      box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
-    }
+    .btn-primary { background: var(--accent); color: #020617; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary { background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border); }
 
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 24px rgba(16, 185, 129, 0.4);
-    }
-
-    .btn-secondary {
-      background: rgba(248, 240, 252, 0.05);
-      color: var(--text);
-      border: 1px solid var(--border);
-    }
-
-    .btn-secondary:hover {
-      background: rgba(248, 240, 252, 0.1);
-    }
-
-    .status-cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    .status-bar {
+      display: flex;
       gap: 16px;
       margin-bottom: 24px;
     }
 
-    .status-card {
+    .stat-item {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 20px;
-      text-align: center;
+      border-radius: 16px;
+      padding: 12px 20px;
+      flex: 1;
     }
 
-    .status-card .label {
-      font-size: 0.75rem;
-      color: var(--muted);
-      text-transform: uppercase;
-      margin-bottom: 8px;
-    }
-
-    .status-card .value {
-      font-size: 1.1rem;
-      font-weight: 700;
-    }
-
-    .badge {
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 99px;
-      font-size: 0.7rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      margin-bottom: 12px;
-    }
-
-    .badge-accent { background: var(--accent-soft); color: var(--accent); }
+    .stat-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+    .stat-value { font-weight: 700; font-size: 1rem; }
 
     .table-container {
       overflow-x: auto;
       border-radius: 16px;
       border: 1px solid var(--border);
-      background: rgba(2, 6, 23, 0.3);
+      background: rgba(0,0,0,0.2);
     }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.95rem;
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; padding: 16px; background: rgba(255,255,255,0.02); color: var(--muted); font-size: 0.85rem; border-bottom: 1px solid var(--border); }
+    td { padding: 14px 16px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+
+    /* Console Styles */
+    .console-panel {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 250px;
+      background: var(--console-bg);
+      border-top: 2px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      z-index: 1000;
+      box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
     }
 
-    th {
-      text-align: left;
-      padding: 18px 20px;
-      background: rgba(248, 240, 252, 0.03);
-      color: var(--muted);
-      font-weight: 600;
+    .console-header {
+      padding: 8px 20px;
+      background: rgba(0,0,0,0.3);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       border-bottom: 1px solid var(--border);
     }
 
-    td {
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--border);
-      color: var(--text);
+    .console-title { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--accent); font-weight: 700; text-transform: uppercase; }
+    
+    .console-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      line-height: 1.5;
     }
 
-    tr:hover td {
-      background: rgba(148, 163, 184, 0.05);
-    }
-
-    .loader {
-      display: none;
-      margin: 40px auto;
-      width: 40px;
-      height: 40px;
-      border: 4px solid var(--accent-soft);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    .message {
-      padding: 16px;
-      border-radius: 12px;
-      font-size: 0.9rem;
-      margin-top: 16px;
-      display: none;
-    }
-
-    .message-error {
-      background: rgba(244, 63, 94, 0.1);
-      color: var(--danger);
-      border: 1px solid rgba(244, 63, 94, 0.2);
-    }
-
-    .message-success {
-      background: var(--accent-soft);
-      color: var(--accent);
-      border: 1px solid var(--accent-soft);
-    }
+    .log-line { margin-bottom: 4px; border-left: 2px solid transparent; padding-left: 10px; }
+    .log-info { border-color: var(--accent); color: #fff; }
+    .log-error { border-color: var(--danger); color: var(--danger); }
+    .log-warn { border-color: #f59e0b; color: #f59e0b; }
+    .log-time { color: var(--muted); margin-right: 10px; font-size: 0.7rem; }
 
     @media (max-width: 768px) {
-      .shell { padding: 20px 16px; }
-      header h1 { font-size: 2.2rem; }
+      .app-container { padding: 20px 16px; padding-bottom: 280px; }
+      .console-panel { height: 200px; }
     }
   </style>
 </head>
 <body>
-  <div class="shell">
+  <div class="app-container">
     <header>
-      <h1>OData Explorer</h1>
-      <p>High-performance SAP S/4HANA connectivity via Oryonix</p>
+      <h1>SAP OData Explorer</h1>
     </header>
 
     <div class="glass-panel">
-      <div class="controls-grid">
-        <div class="control-group">
-          <label for="apiSelect">Target Service</label>
-          <select id="apiSelect"></select>
+      <div class="grid-4">
+        <div class="field">
+          <label>Target API Service</label>
+          <select id="apiSelect">
+            <option value="">Connecting to registry...</option>
+          </select>
         </div>
-
-        <div class="control-group">
-          <label for="apiKey">SAP Sandbox API Key</label>
-          <input id="apiKey" type="password" placeholder="Paste APIKey here" />
+        <div class="field">
+          <label>SAP Sandbox API Key</label>
+          <input id="sapKey" type="password" placeholder="HibHlLvSl..." />
         </div>
-
-        <div class="control-group">
-          <label for="top">Row Limit</label>
-          <input id="top" type="number" min="1" max="100" value="5" />
+        <div class="field">
+          <label>Rows</label>
+          <input id="rowCount" type="number" value="5" min="1" max="100" />
         </div>
-
-        <div class="control-group">
-          <button class="btn btn-primary" id="loadButton">
-            <span>Fetch Data</span>
-          </button>
+        <div style="display: flex; align-items: flex-end; gap: 12px;">
+          <button id="fetchBtn" class="btn btn-primary" style="flex: 1;">Fetch Data</button>
+          <button id="reloadBtn" class="btn btn-secondary" title="Reload Registry">↺</button>
         </div>
-      </div>
-      
-      <div id="statusMessage" class="message"></div>
-    </div>
-
-    <div class="status-cards">
-      <div class="status-card">
-        <div class="label">Status</div>
-        <div class="value" id="statusValue">Idle</div>
-      </div>
-      <div class="status-card">
-        <div class="label">Active Entity</div>
-        <div class="value" id="activeEntityValue">—</div>
-      </div>
-      <div class="status-card">
-        <div class="label">Count</div>
-        <div class="value" id="countValue">0</div>
-      </div>
-      <div class="status-card">
-        <div class="label">Response Time</div>
-        <div class="value" id="timeValue">0ms</div>
       </div>
     </div>
 
-    <div class="glass-panel" style="padding: 0; overflow: hidden;">
-      <div style="padding: 24px 32px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
-        <div>
-          <div id="techBadge" class="badge badge-accent">Ready</div>
-          <h2 id="serviceTitle" style="margin: 0; font-size: 1.25rem;">Live Data Preview</h2>
-        </div>
-        <button class="btn btn-secondary" id="reloadApisButton">Refresh Schema</button>
+    <div class="status-bar">
+      <div class="stat-item">
+        <div class="stat-label">Connection Status</div>
+        <div id="connStatus" class="stat-value">Booting...</div>
       </div>
+      <div class="stat-item">
+        <div class="stat-label">Active Entity</div>
+        <div id="activeEntity" class="stat-value">—</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Records</div>
+        <div id="statCount" class="stat-value">0</div>
+      </div>
+    </div>
 
-      <div class="loader" id="mainLoader"></div>
-
-      <div class="table-container" id="tableContainer">
-        <table id="dataTable">
-          <thead><tr id="tableHeadRow"></tr></thead>
+    <div class="glass-panel" style="padding: 0; min-height: 400px; display: flex; flex-direction: column;">
+      <div style="padding: 20px 32px; border-bottom: 1px solid var(--border);">
+        <h2 id="serviceLabel" style="margin: 0; font-size: 1.25rem;">Live Exploration</h2>
+      </div>
+      <div id="tableScroll" class="table-container" style="flex: 1;">
+        <table id="mainTable">
+          <thead><tr id="tableHead"></tr></thead>
           <tbody id="tableBody">
-            <tr><td colspan="100%" style="text-align: center; padding: 60px; color: var(--muted);">Select an API and fetch data to begin exploration.</td></tr>
+            <tr><td colspan="100%" style="text-align: center; padding: 100px; color: var(--muted);">Select an API and provide your key to begin.</td></tr>
           </tbody>
         </table>
       </div>
     </div>
+    
+    <!-- Spacer for console -->
+    <div style="height: 260px;"></div>
+  </div>
+
+  <div class="console-panel">
+    <div class="console-header">
+      <div class="console-title">System Console</div>
+      <button onclick="clearLogs()" style="background:none; border:none; color:var(--muted); font-family:inherit; font-size:0.7rem; cursor:pointer;">CLEAR [X]</button>
+    </div>
+    <div id="consoleBody" class="console-body"></div>
   </div>
 
   <script>
     const API_LIST_URL = "/s4hana/apis";
     const API_ROWS_BASE = "/s4hana/apis";
-    
-    const elements = {
+
+    const els = {
       apiSelect: document.getElementById('apiSelect'),
-      apiKey: document.getElementById('apiKey'),
-      top: document.getElementById('top'),
-      loadButton: document.getElementById('loadButton'),
-      reloadApisButton: document.getElementById('reloadApisButton'),
-      statusValue: document.getElementById('statusValue'),
-      activeEntityValue: document.getElementById('activeEntityValue'),
-      countValue: document.getElementById('countValue'),
-      timeValue: document.getElementById('timeValue'),
-      statusMessage: document.getElementById('statusMessage'),
-      tableHeadRow: document.getElementById('tableHeadRow'),
+      sapKey: document.getElementById('sapKey'),
+      rowCount: document.getElementById('rowCount'),
+      fetchBtn: document.getElementById('fetchBtn'),
+      reloadBtn: document.getElementById('reloadBtn'),
+      connStatus: document.getElementById('connStatus'),
+      activeEntity: document.getElementById('activeEntity'),
+      statCount: document.getElementById('statCount'),
+      serviceLabel: document.getElementById('serviceLabel'),
+      tableHead: document.getElementById('tableHead'),
       tableBody: document.getElementById('tableBody'),
-      mainLoader: document.getElementById('mainLoader'),
-      tableContainer: document.getElementById('tableContainer'),
-      techBadge: document.getElementById('techBadge'),
-      serviceTitle: document.getElementById('serviceTitle'),
+      console: document.getElementById('consoleBody'),
     };
 
     let apiCache = [];
 
-    function showMessage(text, type = 'success') {
-      elements.statusMessage.textContent = text;
-      elements.statusMessage.className = `message message-${type}`;
-      elements.statusMessage.style.display = 'block';
-      setTimeout(() => { elements.statusMessage.style.opacity = '0'; }, 4000);
-      setTimeout(() => { elements.statusMessage.style.display = 'none'; elements.statusMessage.style.opacity = '1'; }, 4500);
+    function log(msg, type = 'info') {
+      const line = document.createElement('div');
+      line.className = `log-line log-${type}`;
+      const time = new Date().toLocaleTimeString();
+      line.innerHTML = `<span class="log-time">[${time}]</span> ${msg}`;
+      els.console.appendChild(line);
+      els.console.scrollTop = els.console.scrollHeight;
     }
 
-    function setUIState(loading = false) {
-      elements.mainLoader.style.display = loading ? 'block' : 'none';
-      elements.tableContainer.style.opacity = loading ? '0.3' : '1';
-      elements.loadButton.disabled = loading;
-    }
+    function clearLogs() { els.console.innerHTML = ''; }
 
-    async function fetchAPIs() {
+    async function fetchRegistry() {
+      log("Initializing OData Registry sync...");
+      els.connStatus.textContent = "Syncing...";
+      
       try {
         const res = await fetch(API_LIST_URL, { 
           method: 'POST', 
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({})
         });
-        const data = await res.json();
-        apiCache = data.available_apis;
         
-        elements.apiSelect.innerHTML = apiCache.map(api => 
-          `<option value="${api.api_name}">${api.label} (${api.technical_name})</option>`
+        const data = await res.json();
+        
+        if (!res.ok) {
+          log(`Registry Sync Failed: ${res.status} ${res.statusText}`, 'error');
+          log(`Response: ${JSON.stringify(data, null, 2)}`, 'error');
+          els.connStatus.textContent = "Auth Error";
+          return;
+        }
+
+        apiCache = data.available_apis || [];
+        els.apiSelect.innerHTML = apiCache.map(api => 
+          `<option value="${api.api_name}">${api.label}</option>`
         ).join('');
         
+        log(`Registry Loaded: ${apiCache.length} endpoints available.`, 'info');
         updateHeader();
+        els.connStatus.textContent = "Ready";
       } catch (err) {
-        showMessage('Failed to load API registry: ' + err.message, 'error');
+        log(`System Exception during Sync: ${err.message}`, 'error');
+        els.connStatus.textContent = "Offline";
       }
     }
 
     function updateHeader() {
-      const selected = apiCache.find(a => a.api_name === elements.apiSelect.value);
+      const selected = apiCache.find(a => a.api_name === els.apiSelect.value);
       if (selected) {
-        elements.serviceTitle.textContent = selected.label;
-        elements.techBadge.textContent = selected.technical_name;
-        elements.activeEntityValue.textContent = selected.entity_set;
+        els.serviceLabel.textContent = selected.label;
+        els.activeEntity.textContent = selected.entity_set;
+        log(`Switched context to ${selected.technical_name}`);
       }
     }
 
     async function loadData() {
-      const selected = apiCache.find(a => a.api_name === elements.apiSelect.value);
-      const key = elements.apiKey.value.trim();
-      const top = elements.top.value;
-
+      const selected = apiCache.find(a => a.api_name === els.apiSelect.value);
+      const key = els.sapKey.value.trim();
+      
       if (!key) {
-        showMessage('Please enter an SAP API Key', 'error');
+        log("Fetch aborted: SAP API Key is missing.", "warn");
         return;
       }
 
-      setUIState(true);
-      elements.statusValue.textContent = 'Fetching...';
-      const start = performance.now();
+      log(`Requesting ${els.rowCount.value} rows from ${selected.technical_name}...`);
+      els.fetchBtn.disabled = true;
+      els.connStatus.textContent = "Fetching...";
 
       try {
         const res = await fetch(`${API_ROWS_BASE}/${selected.api_name}/rows-safe`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ api_key: key, top: parseInt(top) })
+          body: JSON.stringify({ api_key: key, top: parseInt(els.rowCount.value) })
         });
         
         const result = await res.json();
-        const end = performance.now();
-        elements.timeValue.textContent = `${Math.round(end - start)}ms`;
 
         if (!result.ok) {
-          throw new Error(result.error?.message || 'Unknown server error');
+          log(`OData Execution Error: ${result.error?.type || 'Unknown'}`, 'error');
+          log(`Message: ${result.error?.message || 'Check platform logs'}`, 'error');
+          throw new Error(result.error?.message || "OData Failure");
         }
 
+        log(`Data acquired: ${result.rows.length} records parsed from SAP Sandbox.`, 'info');
         renderTable(result.columns, result.rows);
-        elements.countValue.textContent = result.rows.length;
-        elements.statusValue.textContent = 'Linked';
-        showMessage(`Successfully retrieved ${result.rows.length} records.`);
+        els.statCount.textContent = result.rows.length;
+        els.connStatus.textContent = "Synchronized";
       } catch (err) {
-        elements.statusValue.textContent = 'Error';
-        showMessage(err.message, 'error');
-        elements.tableBody.innerHTML = `<tr><td colspan="100%" style="text-align: center; color: var(--danger); padding: 40px;">${err.message}</td></tr>`;
+        log(`Terminal Error: ${err.message}`, 'error');
+        els.tableBody.innerHTML = `<tr><td colspan="100%" style="text-align: center; color: var(--danger); padding: 60px;">${err.message}</td></tr>`;
+        els.connStatus.textContent = "Failed";
       } finally {
-        setUIState(false);
+        els.fetchBtn.disabled = false;
       }
     }
 
     function renderTable(cols, rows) {
-      elements.tableHeadRow.innerHTML = cols.map(c => `<th>${c.label}</th>`).join('');
-      
+      els.tableHead.innerHTML = cols.map(c => `<th>${c.label}</th>`).join('');
       if (rows.length === 0) {
-        elements.tableBody.innerHTML = '<tr><td colspan="100%" style="text-align: center; padding: 40px; color: var(--muted);">No records found in SAP for this query.</td></tr>';
+        els.tableBody.innerHTML = '<tr><td colspan="100%" style="text-align: center; padding: 60px; color: var(--muted);">Connected but entity is empty.</td></tr>';
         return;
       }
-
-      elements.tableBody.innerHTML = rows.map(row => `
-        <tr>
-          ${cols.map(c => `<td>${row[c.key] ?? '—'}</td>`).join('')}
-        </tr>
+      els.tableBody.innerHTML = rows.map(row => `
+        <tr>${cols.map(c => `<td>${row[c.key] ?? '—'}</td>`).join('')}</tr>
       `).join('');
     }
 
-    elements.loadButton.addEventListener('click', loadData);
-    elements.reloadApisButton.addEventListener('click', fetchAPIs);
-    elements.apiSelect.addEventListener('change', updateHeader);
+    els.fetchBtn.addEventListener('click', loadData);
+    els.reloadBtn.addEventListener('click', fetchRegistry);
+    els.apiSelect.addEventListener('change', updateHeader);
 
-    // Init
-    fetchAPIs();
+    // Initial Sync
+    fetchRegistry();
   </script>
 </body>
 </html>
