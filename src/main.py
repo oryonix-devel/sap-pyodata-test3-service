@@ -4,7 +4,7 @@ import logging
 from typing import Any
 
 import onix
-from .odata import ODataClient
+from odata import ODataClient
 
 logger = logging.getLogger(__name__)
 
